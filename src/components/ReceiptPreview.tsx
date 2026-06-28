@@ -26,6 +26,9 @@ export function ReceiptPreview({ receipt, onClose }: Props) {
           <p className="text-xs text-gray-500 mb-3">{header.invoice_no}</p>
 
           <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm font-mono">
+            <div className="text-center mb-1">
+              <img src="/fathouse.jpeg" alt="Fat House Coffe" style={{ width: '3cm', height: '3cm' }} className="mx-auto" />
+            </div>
             <div className="text-center font-bold text-base mb-2">Fat House Coffe</div>
             <div className="text-center text-xs text-gray-500 mb-2">
               {header.invoice_no}<br />

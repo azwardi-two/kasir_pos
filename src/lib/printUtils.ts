@@ -24,6 +24,8 @@ export function buildReceipt(header: SaleHeader, items: SaleItem[], payments: Sa
   }
 
   add(ESC, 0x40)
+  add(GS, 0x21, 0)
+  add(ESC, 0x4D, 1)
   add(ESC, 0x61, 1)
   add(ESC, 0x45, 1)
   add(txt('Fat House Coffe\n'))
@@ -55,11 +57,11 @@ export function buildReceipt(header: SaleHeader, items: SaleItem[], payments: Sa
   add(txt(''.padEnd(32, '-') + '\n'))
 
   for (const p of payments) {
-    const payStr = ('Rp ' + p.amount.toLocaleString('id-ID')).padStart(20)
-    add(txt(p.method.toUpperCase().padEnd(12) + payStr + '\n'))
+    const payStr = ('Rp ' + p.amount.toLocaleString('id-ID')).padStart(19)
+    add(txt(p.method.toUpperCase().padEnd(13) + payStr + '\n'))
   }
-  const changeStr = ('Rp ' + header.change_amount.toLocaleString('id-ID')).padStart(20)
-  add(txt('Kembali'.padEnd(12) + changeStr + '\n'))
+  const changeStr = ('Rp ' + header.change_amount.toLocaleString('id-ID')).padStart(19)
+  add(txt('Kembali'.padEnd(13) + changeStr + '\n'))
 
   add(txt(''.padEnd(32, '-') + '\n'))
 
@@ -109,10 +111,10 @@ export function printBrowser(header: SaleHeader, items: SaleItem[], payments: Sa
 
   const overlay = document.createElement('div')
   overlay.id = 'print-receipt-overlay'
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:#fff;display:flex;flex-direction:column;align-items:center;padding:20px;font-family:Courier New,monospace;font-size:12px;color:#000'
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:#fff;display:flex;flex-direction:column;align-items:center;padding:20px;font-family:Courier New,monospace;font-size:10px;color:#000'
 
   const receiptDiv = document.createElement('div')
-  receiptDiv.style.cssText = 'width:58mm;padding:10px 8px'
+  receiptDiv.style.cssText = 'width:100%;padding:2px 0;font-size:11px;box-sizing:border-box'
   receiptDiv.innerHTML = content
 
   const closeBtn = document.createElement('button')
@@ -179,38 +181,39 @@ export function downloadReceiptTxt(header: SaleHeader, items: SaleItem[], paymen
 }
 
 function buildHtmlReceipt(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+  const logoUrl = location.origin + '/fathouse.jpeg'
   return `
-<h2>Fat House Coffe</h2>
-<div class="sub">${header.invoice_no}<br>${formatDate(header.date)}${header.customer_name ? '<br>' + header.customer_name : ''}${header.customer_phone ? '<br>' + header.customer_phone : ''}</div>
-<hr>
-<table>
-  <thead>
-    <tr><th>Item</th><th class="center">Qty</th><th class="right">Subtotal</th></tr>
-  </thead>
+<div style="font-size:10px;line-height:1.3;width:100%;word-break:break-all">
+<div style="text-align:center"><img src="${logoUrl}" style="width:3cm;height:3cm"></div>
+<div style="text-align:center;font-weight:bold">Fat House Coffe</div>
+<div style="text-align:center">${header.invoice_no}<br>${formatDate(header.date)}${header.customer_name ? '<br>' + header.customer_name : ''}${header.customer_phone ? '<br>' + header.customer_phone : ''}</div>
+<hr style="border:none;border-top:1px dashed #000;margin:3px 0">
+<table style="width:100%;font-size:10px;border-collapse:collapse">
   <tbody>
     ${items.map(i => `
       <tr>
-        <td style="text-align:left">${i.product_name}${i.note ? '<br><span style="font-size:10px;color:#888">  - ' + i.note + '</span>' : ''}</td>
-        <td style="text-align:center">${i.qty}</td>
-        <td style="text-align:right">${(i.price * i.qty).toLocaleString('id-ID')}</td>
+        <td style="text-align:left">${i.product_name}${i.note ? '<br><span style="font-size:8px;color:#888">  - ' + i.note + '</span>' : ''}</td>
+        <td style="text-align:center;white-space:nowrap">${i.qty}x</td>
+        <td style="text-align:right;white-space:nowrap">${(i.price * i.qty).toLocaleString('id-ID')}</td>
       </tr>
     `).join('')}
   </tbody>
 </table>
-<hr>
-<table>
-  <tr class="total-row"><td>TOTAL</td><td></td><td class="right">Rp ${header.total.toLocaleString('id-ID')}</td></tr>
+<hr style="border:none;border-top:1px dashed #000;margin:3px 0">
+<table style="width:100%;font-size:10px;border-collapse:collapse">
+  <tr style="font-weight:bold"><td style="text-align:left">TOTAL</td><td style="text-align:right;white-space:nowrap">Rp ${header.total.toLocaleString('id-ID')}</td></tr>
 </table>
-<hr>
-<table>
+<hr style="border:none;border-top:1px dashed #000;margin:3px 0">
+<table style="width:100%;font-size:10px;border-collapse:collapse">
   ${payments.map(p => `
     <tr>
       <td style="text-align:left">${p.method.toUpperCase()}</td>
-      <td style="text-align:right">${p.amount.toLocaleString('id-ID')}</td>
+      <td style="text-align:right;white-space:nowrap">${p.amount.toLocaleString('id-ID')}</td>
     </tr>
   `).join('')}
-  <tr><td>Kembali</td><td></td><td class="right">Rp ${header.change_amount.toLocaleString('id-ID')}</td></tr>
+  <tr><td style="text-align:left">Kembali</td><td style="text-align:right;white-space:nowrap">Rp ${header.change_amount.toLocaleString('id-ID')}</td></tr>
 </table>
-<hr>
-<div class="footer">Terima kasih</div>`
+<hr style="border:none;border-top:1px dashed #000;margin:3px 0">
+<div style="text-align:center">Terima kasih</div>
+</div>`
 }

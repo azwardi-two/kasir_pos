@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
+@page {
+  margin: 0;
+  size: 58mm auto;
+}
+
 @media print {
+  body {
+    margin: 0 !important;
+  }
   body * { visibility: hidden; }
   #print-receipt-overlay, #print-receipt-overlay * { visibility: visible; }
   #print-receipt-overlay {
@@ -8,9 +16,10 @@
     left: 0;
     top: 0;
     width: 58mm;
-    padding: 10px 8px;
+    padding: 2px 0;
     font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
+    font-size: 11px;
     color: #000;
+    box-sizing: border-box;
   }
 }
