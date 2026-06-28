@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Receipt } from '../types'
-import { printBrowser, receiptToText, downloadReceiptTxt } from '../lib/printUtils'
+import { printBrowser, printBluetooth, receiptToText, downloadReceiptTxt } from '../lib/printUtils'
 
 interface Props {
   receipt: Receipt
@@ -9,11 +9,31 @@ interface Props {
 
 export function ReceiptPreview({ receipt, onClose }: Props) {
   const [showTextPreview, setShowTextPreview] = useState(false)
+  const [btAvailable, setBtAvailable] = useState(false)
+  const [btLoading, setBtLoading] = useState(false)
+  const [btError, setBtError] = useState<string | null>(null)
   const { header, items, payments } = receipt
+
+  useEffect(() => {
+    setBtAvailable(!!(navigator as any).bluetooth)
+  }, [])
 
   async function handlePrint() {
     onClose()
     await printBrowser(header, items, payments)
+  }
+
+  async function handlePrintBluetooth() {
+    setBtLoading(true)
+    setBtError(null)
+    try {
+      await printBluetooth(header, items, payments)
+      onClose()
+    } catch (err: any) {
+      setBtError(err.message || 'Gagal print via Bluetooth')
+    } finally {
+      setBtLoading(false)
+    }
   }
 
   const escposText = receiptToText(header, items, payments)
@@ -73,13 +93,26 @@ export function ReceiptPreview({ receipt, onClose }: Props) {
             <div className="text-center text-xs text-gray-500 mt-3">Terima kasih</div>
           </div>
 
-          <div className="flex gap-2">
+          {btError && (
+            <div className="text-xs text-red-500 mb-3 text-center">{btError}</div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={onClose}
               className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 cursor-pointer"
             >
               Tutup
             </button>
+            {btAvailable && (
+              <button
+                onClick={handlePrintBluetooth}
+                disabled={btLoading}
+                className="py-2.5 px-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {btLoading ? 'Mengirim...' : 'Bluetooth'}
+              </button>
+            )}
             <button
               onClick={() => downloadReceiptTxt(header, items, payments)}
               className="py-2.5 px-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 cursor-pointer"
@@ -98,7 +131,7 @@ export function ReceiptPreview({ receipt, onClose }: Props) {
               onClick={handlePrint}
               className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 cursor-pointer"
             >
-              Print Struk
+              {btAvailable ? 'Print Browser' : 'Print Struk'}
             </button>
           </div>
         </div>

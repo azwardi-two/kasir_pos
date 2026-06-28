@@ -101,6 +101,53 @@ export async function printUSB(header: SaleHeader, items: SaleItem[], payments: 
   await device.close()
 }
 
+export async function printBluetooth(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+  const nav = navigator as any
+  if (!nav.bluetooth) {
+    throw new Error('Bluetooth tidak didukung di browser ini. Gunakan Chrome Android.')
+  }
+
+  const device = await nav.bluetooth.requestDevice({
+    acceptAllDevices: true,
+    optionalServices: [
+      '000018f0-0000-1000-8000-00805f9b34fb',
+      '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '000018ff-0000-1000-8000-00805f9b34fb',
+    ],
+  })
+
+  const data = buildReceipt(header, items, payments)
+  const server = await device.gatt.connect()
+
+  let characteristic: BluetoothRemoteGATTCharacteristic | null = null
+  const services = await server.getPrimaryServices()
+  for (const svc of services) {
+    const chars = await svc.getCharacteristics()
+    for (const c of chars) {
+      if (c.properties.write || c.properties.writeWithoutResponse) {
+        characteristic = c
+        break
+      }
+    }
+    if (characteristic) break
+  }
+
+  if (!characteristic) {
+    await device.gatt.disconnect()
+    throw new Error('Tidak dapat menemukan karakteristik write pada printer. Pastikan printer sudah menyala dan terpilih.')
+  }
+
+  const mtu = 512
+  for (let offset = 0; offset < data.length; offset += mtu) {
+    const chunk = data.slice(offset, offset + mtu)
+    await characteristic.writeValue(chunk)
+  }
+
+  await new Promise(r => setTimeout(r, 500))
+  device.gatt.disconnect()
+}
+
 export function printBrowser(header: SaleHeader, items: SaleItem[], payments: SalePayment[]): Promise<void> {
   if (document.getElementById('print-receipt-overlay')) {
     window.print()
