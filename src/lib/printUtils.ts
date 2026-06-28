@@ -12,7 +12,7 @@ function txt(s: string) {
   return new TextEncoder().encode(s)
 }
 
-function buildReceipt(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+export function buildReceipt(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
   const parts: number[][] = []
 
   function add(...args: (number | number[] | Uint8Array)[]) {
@@ -26,7 +26,7 @@ function buildReceipt(header: SaleHeader, items: SaleItem[], payments: SalePayme
   add(ESC, 0x40)
   add(ESC, 0x61, 1)
   add(ESC, 0x45, 1)
-  add(txt('TOKO\n'))
+  add(txt('Fat House Coffe\n'))
   add(ESC, 0x45, 0)
   add(txt(header.invoice_no + '\n'))
   add(txt(formatDate(header.date) + '\n'))
@@ -37,28 +37,29 @@ function buildReceipt(header: SaleHeader, items: SaleItem[], payments: SalePayme
 
   add(ESC, 0x61, 0)
   for (const item of items) {
-    const name = item.product_name.length > 20 ? item.product_name.slice(0, 20) + '..' : item.product_name.padEnd(20)
+    const name = item.product_name.length > 16 ? item.product_name.slice(0, 16) + '..' : item.product_name.padEnd(16)
     const qty = String(item.qty).padStart(3)
     const sub = 'Rp ' + (item.price * item.qty).toLocaleString('id-ID')
-    add(txt(name + ' ' + qty + ' ' + sub.padStart(12) + '\n'))
+    add(txt(name + ' ' + qty + ' ' + sub.padStart(11) + '\n'))
     if (item.note) add(txt('  - ' + item.note + '\n'))
   }
 
   add(txt(''.padEnd(32, '-') + '\n'))
 
   add(ESC, 0x45, 1)
-  const totalStr = 'TOTAL' + ' '.repeat(10) + 'Rp ' + header.total.toLocaleString('id-ID')
+  const totalFormatted = 'Rp ' + header.total.toLocaleString('id-ID')
+  const totalStr = 'TOTAL'.padEnd(32 - totalFormatted.length) + totalFormatted
   add(txt(totalStr + '\n'))
   add(ESC, 0x45, 0)
 
   add(txt(''.padEnd(32, '-') + '\n'))
 
   for (const p of payments) {
-    const payStr = p.method.toUpperCase().padEnd(12) + 'Rp ' + p.amount.toLocaleString('id-ID')
-    add(txt(payStr + '\n'))
+    const payStr = ('Rp ' + p.amount.toLocaleString('id-ID')).padStart(20)
+    add(txt(p.method.toUpperCase().padEnd(12) + payStr + '\n'))
   }
-  const changeStr = 'Kembali'.padEnd(12) + 'Rp ' + header.change_amount.toLocaleString('id-ID')
-  add(txt(changeStr + '\n'))
+  const changeStr = ('Rp ' + header.change_amount.toLocaleString('id-ID')).padStart(20)
+  add(txt('Kembali'.padEnd(12) + changeStr + '\n'))
 
   add(txt(''.padEnd(32, '-') + '\n'))
 
@@ -66,7 +67,7 @@ function buildReceipt(header: SaleHeader, items: SaleItem[], payments: SalePayme
   add(txt('Terima kasih\n'))
 
   add(ESC, 0x61, 0)
-  add(txt('\n\n\n\n'))
+  add(txt('\n'))
   add(GS, 0x56, 0x00)
 
   const flat = parts.flat()
@@ -114,10 +115,6 @@ export function printBrowser(header: SaleHeader, items: SaleItem[], payments: Sa
   receiptDiv.style.cssText = 'width:58mm;padding:10px 8px'
   receiptDiv.innerHTML = content
 
-  const instruction = document.createElement('div')
-  instruction.style.cssText = 'margin-top:20px;text-align:center;font-size:14px;color:#333;font-family:sans-serif'
-  instruction.innerHTML = 'Proses print...'
-
   const closeBtn = document.createElement('button')
   closeBtn.textContent = 'Tutup'
   closeBtn.style.cssText = 'margin-top:12px;padding:8px 24px;background:#6b7280;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer'
@@ -126,7 +123,6 @@ export function printBrowser(header: SaleHeader, items: SaleItem[], payments: Sa
   }
 
   overlay.appendChild(receiptDiv)
-  overlay.appendChild(instruction)
   overlay.appendChild(closeBtn)
   document.body.appendChild(overlay)
 
@@ -148,9 +144,43 @@ export function printBrowser(header: SaleHeader, items: SaleItem[], payments: Sa
   })
 }
 
+export function receiptToText(header: SaleHeader, items: SaleItem[], payments: SalePayment[]): string {
+  const data = buildReceipt(header, items, payments)
+  const chars: number[] = []
+  let i = 0
+  while (i < data.length) {
+    const b = data[i]
+    if (b === 0x1B) {
+      if (i + 1 < data.length) {
+        const cmd = data[i + 1]
+        if (cmd === 0x61) i += 3
+        else if (cmd === 0x45) i += 3
+        else if (cmd === 0x40) i += 2
+        else i += 2
+      } else i++
+      continue
+    }
+    if (b === 0x1D) { i += 3; continue }
+    if (b >= 0x20 || b === 0x0A || b === 0x0D) chars.push(b)
+    i++
+  }
+  return new TextDecoder().decode(new Uint8Array(chars))
+}
+
+export function downloadReceiptTxt(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+  const text = receiptToText(header, items, payments)
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `struk_${header.invoice_no.replace(/\//g, '-')}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 function buildHtmlReceipt(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
   return `
-<h2>TOKO</h2>
+<h2>Fat House Coffe</h2>
 <div class="sub">${header.invoice_no}<br>${formatDate(header.date)}${header.customer_name ? '<br>' + header.customer_name : ''}${header.customer_phone ? '<br>' + header.customer_phone : ''}</div>
 <hr>
 <table>
