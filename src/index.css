@@ -11,6 +11,7 @@
   }
   body * { visibility: hidden; }
   #print-receipt-overlay, #print-receipt-overlay * { visibility: visible; }
+  #print-receipt-overlay button { display: none; }
   #print-receipt-overlay {
     position: absolute;
     left: 0;
