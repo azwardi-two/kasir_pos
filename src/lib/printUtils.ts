@@ -227,6 +227,26 @@ export function downloadReceiptTxt(header: SaleHeader, items: SaleItem[], paymen
   URL.revokeObjectURL(url)
 }
 
+export function downloadReceiptBin(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+  const data = buildReceipt(header, items, payments)
+  const blob = new Blob([data], { type: 'application/octet-stream' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `struk_${header.invoice_no.replace(/\//g, '-')}.bin`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export function openRawBT(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+  const data = buildReceipt(header, items, payments)
+  const binary = Array.from(data).map(b => String.fromCharCode(b)).join('')
+  const base64 = btoa(binary)
+  const url = `intent://print?base64=${encodeURIComponent(base64)}#Intent;scheme=rawbt;package=com.mashinteractive.rawbt;end`
+  window.location.href = url
+  setTimeout(() => downloadReceiptBin(header, items, payments), 2000)
+}
+
 function buildHtmlReceipt(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
   const logoUrl = location.origin + '/fathouse.jpeg'
   return `

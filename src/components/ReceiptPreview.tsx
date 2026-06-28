@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Receipt } from '../types'
-import { printBrowser, printBluetooth, receiptToText, downloadReceiptTxt } from '../lib/printUtils'
+import { printBrowser, printBluetooth, receiptToText, downloadReceiptTxt, downloadReceiptBin } from '../lib/printUtils'
 
 interface Props {
   receipt: Receipt
@@ -126,6 +126,13 @@ export function ReceiptPreview({ receipt, onClose }: Props) {
               title="Preview teks ESC/POS"
             >
               Preview
+            </button>
+            <button
+              onClick={() => downloadReceiptBin(header, items, payments)}
+              className="py-2.5 px-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 cursor-pointer"
+              title="Download .bin lalu buka dengan RawBT"
+            >
+              RawBT
             </button>
             <button
               onClick={handlePrint}
