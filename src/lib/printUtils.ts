@@ -120,7 +120,7 @@ export async function printBluetooth(header: SaleHeader, items: SaleItem[], paym
   const data = buildReceipt(header, items, payments)
   const server = await device.gatt.connect()
 
-  let characteristic: BluetoothRemoteGATTCharacteristic | null = null
+  let characteristic: any = null
   const services = await server.getPrimaryServices()
   for (const svc of services) {
     const chars = await svc.getCharacteristics()
