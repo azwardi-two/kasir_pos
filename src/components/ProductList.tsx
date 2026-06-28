@@ -54,7 +54,7 @@ export function ProductList() {
           ))}
         </div>
       )}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4 auto-rows-max">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 p-2 sm:p-4 auto-rows-max">
         {filtered.map(product => (
           <ProductCard key={product.id} product={product} onAdd={addItem} />
         ))}

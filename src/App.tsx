@@ -33,7 +33,7 @@ function CashierPage() {
         left={
           <div className="flex-1 overflow-y-auto">
             <div className="bg-white border-b border-gray-200 px-4 py-3">
-              <h1 className="text-xl font-bold text-gray-800">Fat House Coffe</h1>
+              <h1 className="text-xl font-bold text-gray-800">&#9749; Fat House Coffe</h1>
             </div>
             <ProductList />
           </div>
