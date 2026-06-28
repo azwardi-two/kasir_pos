@@ -6,7 +6,7 @@ import { ProductCard } from './ProductCard'
 
 export function ProductList() {
   const { products, loading, error } = useProducts()
-  const { categories } = useCategories()
+  const { categories, error: catError } = useCategories()
   const { addItem } = useCart()
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
 
@@ -24,6 +24,9 @@ export function ProductList() {
 
   return (
     <div>
+      {catError && (
+        <div className="px-4 pt-2 text-xs text-red-500">Gagal memuat kategori: {catError}</div>
+      )}
       {categories.length > 0 && (
         <div className="flex gap-2 px-4 pt-3 pb-1 overflow-x-auto">
           <button

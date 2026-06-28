@@ -5,6 +5,7 @@ import type { Category } from '../types'
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     load()
@@ -12,10 +13,15 @@ export function useCategories() {
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase.from('categories').select('*').order('name')
-    if (data) setCategories(data as Category[])
+    setError(null)
+    const { data, error: err } = await supabase.from('categories').select('*').order('name')
+    if (err) {
+      setError(err.message)
+    } else if (data) {
+      setCategories(data as Category[])
+    }
     setLoading(false)
   }
 
-  return { categories, loading, reload: load }
+  return { categories, loading, error, reload: load }
 }
