@@ -227,8 +227,57 @@ export function downloadReceiptTxt(header: SaleHeader, items: SaleItem[], paymen
   URL.revokeObjectURL(url)
 }
 
-export function downloadReceiptBin(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+async function getLogoRaster(): Promise<Uint8Array | null> {
+  try {
+    const img = new Image()
+    img.src = '/fathouse.jpeg'
+    await img.decode()
+
+    const maxDots = 240
+    const scale = Math.min(maxDots / img.width, 1)
+    const w = Math.round(img.width * scale)
+    const h = Math.round(img.height * scale)
+    const widthBytes = Math.ceil(w / 8)
+    const actualW = widthBytes * 8
+
+    const canvas = document.createElement('canvas')
+    canvas.width = actualW
+    canvas.height = h
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(img, 0, 0, actualW, h)
+
+    const imageData = ctx.getImageData(0, 0, actualW, h)
+    const pixels = imageData.data
+
+    const data = new Uint8Array(widthBytes * h)
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < actualW; x++) {
+        const idx = (y * actualW + x) * 4
+        const brightness = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3
+        if (brightness < 128) {
+          const byteIdx = y * widthBytes + Math.floor(x / 8)
+          const bitIdx = 7 - (x % 8)
+          data[byteIdx] |= (1 << bitIdx)
+        }
+      }
+    }
+
+    const cmd = [0x1D, 0x76, 0x30, 0x00, widthBytes & 0xFF, (widthBytes >> 8) & 0xFF, h & 0xFF, (h >> 8) & 0xFF]
+    return new Uint8Array([...cmd, ...data])
+  } catch {
+    return null
+  }
+}
+
+async function buildReceiptWithLogo(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
   const data = buildReceipt(header, items, payments)
+  const logo = await getLogoRaster()
+  if (!logo) return data
+  return new Uint8Array([...logo, 0x0A, 0x0A, ...data])
+}
+
+export async function downloadReceiptBin(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+  const data = await buildReceiptWithLogo(header, items, payments)
   const blob = new Blob([data], { type: 'application/octet-stream' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -238,8 +287,8 @@ export function downloadReceiptBin(header: SaleHeader, items: SaleItem[], paymen
   URL.revokeObjectURL(url)
 }
 
-export function openRawBT(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
-  const data = buildReceipt(header, items, payments)
+export async function openRawBT(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+  const data = await buildReceiptWithLogo(header, items, payments)
   const binary = Array.from(data).map(b => String.fromCharCode(b)).join('')
   const base64 = btoa(binary)
   const url = `intent://print?base64=${encodeURIComponent(base64)}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end`
