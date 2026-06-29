@@ -231,39 +231,53 @@ async function getLogoRaster(): Promise<Uint8Array | null> {
   try {
     const img = new Image()
     img.src = '/fathouse.jpeg'
-    await img.decode()
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = () => reject()
+      if (img.complete && img.naturalWidth > 0) resolve()
+    })
 
-    const maxDots = 240
+    const maxDots = 384
     const scale = Math.min(maxDots / img.width, 1)
     const w = Math.round(img.width * scale)
     const h = Math.round(img.height * scale)
-    const widthBytes = Math.ceil(w / 8)
-    const actualW = widthBytes * 8
+    const widthPx = Math.ceil(w / 8) * 8
 
     const canvas = document.createElement('canvas')
-    canvas.width = actualW
+    canvas.width = widthPx
     canvas.height = h
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(img, 0, 0, actualW, h)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    ctx.drawImage(img, 0, 0, widthPx, h)
 
-    const imageData = ctx.getImageData(0, 0, actualW, h)
+    const imageData = ctx.getImageData(0, 0, widthPx, h)
     const pixels = imageData.data
 
-    const data = new Uint8Array(widthBytes * h)
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < actualW; x++) {
-        const idx = (y * actualW + x) * 4
-        const brightness = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3
-        if (brightness < 128) {
-          const byteIdx = y * widthBytes + Math.floor(x / 8)
-          const bitIdx = 7 - (x % 8)
-          data[byteIdx] |= (1 << bitIdx)
+    const dark: boolean[] = Array(widthPx * h)
+    for (let i = 0; i < widthPx * h; i++) {
+      const idx = i * 4
+      dark[i] = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3 < 128
+    }
+
+    const strips = Math.ceil(h / 8)
+    const parts: number[] = []
+
+    for (let s = 0; s < strips; s++) {
+      const baseY = s * 8
+      parts.push(0x1B, 0x2A, 0x00)
+      parts.push(widthPx & 0xFF, (widthPx >> 8) & 0xFF)
+
+      for (let x = 0; x < widthPx; x++) {
+        let byte = 0
+        for (let b = 0; b < 8; b++) {
+          const y = baseY + b
+          if (y < h && dark[y * widthPx + x]) byte |= (1 << (7 - b))
         }
+        parts.push(byte)
       }
     }
 
-    const cmd = [0x1D, 0x76, 0x30, 0x00, widthBytes & 0xFF, (widthBytes >> 8) & 0xFF, h & 0xFF, (h >> 8) & 0xFF]
-    return new Uint8Array([...cmd, ...data])
+    return new Uint8Array(parts)
   } catch {
     return null
   }
