@@ -242,7 +242,7 @@ export function openRawBT(header: SaleHeader, items: SaleItem[], payments: SaleP
   const data = buildReceipt(header, items, payments)
   const binary = Array.from(data).map(b => String.fromCharCode(b)).join('')
   const base64 = btoa(binary)
-  const url = `intent://print?base64=${encodeURIComponent(base64)}#Intent;scheme=rawbt;package=com.mashinteractive.rawbt;end`
+  const url = `intent://print?base64=${encodeURIComponent(base64)}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end`
   window.location.href = url
   setTimeout(() => downloadReceiptBin(header, items, payments), 2000)
 }

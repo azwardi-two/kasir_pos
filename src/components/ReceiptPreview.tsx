@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Receipt } from '../types'
-import { printBrowser, printBluetooth, receiptToText, downloadReceiptTxt, downloadReceiptBin } from '../lib/printUtils'
+import { printBrowser, printBluetooth, openRawBT } from '../lib/printUtils'
 
 interface Props {
   receipt: Receipt
@@ -8,7 +8,6 @@ interface Props {
 }
 
 export function ReceiptPreview({ receipt, onClose }: Props) {
-  const [showTextPreview, setShowTextPreview] = useState(false)
   const [btAvailable, setBtAvailable] = useState(false)
   const [btLoading, setBtLoading] = useState(false)
   const [btError, setBtError] = useState<string | null>(null)
@@ -35,8 +34,6 @@ export function ReceiptPreview({ receipt, onClose }: Props) {
       setBtLoading(false)
     }
   }
-
-  const escposText = receiptToText(header, items, payments)
 
   return (
     <>
@@ -114,23 +111,9 @@ export function ReceiptPreview({ receipt, onClose }: Props) {
               </button>
             )}
             <button
-              onClick={() => downloadReceiptTxt(header, items, payments)}
-              className="py-2.5 px-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 cursor-pointer"
-              title="Download .txt (simulasi ESC/POS)"
-            >
-              .txt
-            </button>
-            <button
-              onClick={() => setShowTextPreview(true)}
-              className="py-2.5 px-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 cursor-pointer"
-              title="Preview teks ESC/POS"
-            >
-              Preview
-            </button>
-            <button
-              onClick={() => downloadReceiptBin(header, items, payments)}
+              onClick={() => openRawBT(header, items, payments)}
               className="py-2.5 px-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 cursor-pointer"
-              title="Download .bin lalu buka dengan RawBT"
+              title="Kirim langsung ke RawBT"
             >
               RawBT
             </button>
@@ -143,26 +126,6 @@ export function ReceiptPreview({ receipt, onClose }: Props) {
           </div>
         </div>
       </div>
-
-      {showTextPreview && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Preview Teks ESC/POS</h3>
-            <p className="text-xs text-gray-500 mb-3">Gunakan font monospace untuk melihat alignment spasi</p>
-            <pre className="bg-gray-50 rounded-lg p-3 text-xs font-mono leading-tight overflow-x-auto max-h-80 border">
-              {escposText}
-            </pre>
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={() => setShowTextPreview(false)}
-                className="flex-1 py-2.5 rounded-lg bg-gray-600 text-white font-semibold hover:bg-gray-700 cursor-pointer"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }
