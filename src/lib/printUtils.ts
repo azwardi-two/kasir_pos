@@ -227,71 +227,8 @@ export function downloadReceiptTxt(header: SaleHeader, items: SaleItem[], paymen
   URL.revokeObjectURL(url)
 }
 
-async function getLogoRaster(): Promise<Uint8Array | null> {
-  try {
-    const img = new Image()
-    img.src = '/fathouse.jpeg'
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve()
-      img.onerror = () => reject()
-      if (img.complete && img.naturalWidth > 0) resolve()
-    })
-
-    const maxDots = 384
-    const scale = Math.min(maxDots / img.width, 1)
-    const w = Math.round(img.width * scale)
-    const h = Math.round(img.height * scale)
-    const widthPx = Math.ceil(w / 8) * 8
-
-    const canvas = document.createElement('canvas')
-    canvas.width = widthPx
-    canvas.height = h
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return null
-    ctx.drawImage(img, 0, 0, widthPx, h)
-
-    const imageData = ctx.getImageData(0, 0, widthPx, h)
-    const pixels = imageData.data
-
-    const dark: boolean[] = Array(widthPx * h)
-    for (let i = 0; i < widthPx * h; i++) {
-      const idx = i * 4
-      dark[i] = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3 < 128
-    }
-
-    const strips = Math.ceil(h / 8)
-    const parts: number[] = []
-
-    for (let s = 0; s < strips; s++) {
-      const baseY = s * 8
-      parts.push(0x1B, 0x2A, 0x00)
-      parts.push(widthPx & 0xFF, (widthPx >> 8) & 0xFF)
-
-      for (let x = 0; x < widthPx; x++) {
-        let byte = 0
-        for (let b = 0; b < 8; b++) {
-          const y = baseY + b
-          if (y < h && dark[y * widthPx + x]) byte |= (1 << (7 - b))
-        }
-        parts.push(byte)
-      }
-    }
-
-    return new Uint8Array(parts)
-  } catch {
-    return null
-  }
-}
-
-async function buildReceiptWithLogo(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+export function downloadReceiptBin(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
   const data = buildReceipt(header, items, payments)
-  const logo = await getLogoRaster()
-  if (!logo) return data
-  return new Uint8Array([...logo, 0x0A, 0x0A, ...data])
-}
-
-export async function downloadReceiptBin(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
-  const data = await buildReceiptWithLogo(header, items, payments)
   const blob = new Blob([data], { type: 'application/octet-stream' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -301,8 +238,8 @@ export async function downloadReceiptBin(header: SaleHeader, items: SaleItem[], 
   URL.revokeObjectURL(url)
 }
 
-export async function openRawBT(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
-  const data = await buildReceiptWithLogo(header, items, payments)
+export function openRawBT(header: SaleHeader, items: SaleItem[], payments: SalePayment[]) {
+  const data = buildReceipt(header, items, payments)
   const binary = Array.from(data).map(b => String.fromCharCode(b)).join('')
   const base64 = btoa(binary)
   const url = `intent://print?base64=${encodeURIComponent(base64)}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end`
