@@ -35,9 +35,9 @@ export function buildReceipt(header: SaleHeader, items: SaleItem[], payments: Sa
   if (header.customer_name) add(txt(header.customer_name + '\n'))
   if (header.customer_phone) add(txt(header.customer_phone + '\n'))
 
+  add(ESC, 0x61, 0)
   add(txt(''.padEnd(32, '-') + '\n'))
 
-  add(ESC, 0x61, 0)
   for (const item of items) {
     const name = item.product_name.length > 16 ? item.product_name.slice(0, 16) + '..' : item.product_name.padEnd(16)
     const qty = String(item.qty).padStart(3)
