@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Receipt } from '../types'
-import { printBrowser, printBluetooth, openRawBT } from '../lib/printUtils'
+import { printBrowser, printBluetooth, downloadReceiptBin } from '../lib/printUtils'
 
 interface Props {
   receipt: Receipt
@@ -111,9 +111,9 @@ export function ReceiptPreview({ receipt, onClose }: Props) {
               </button>
             )}
             <button
-              onClick={() => openRawBT(header, items, payments)}
+              onClick={() => downloadReceiptBin(header, items, payments)}
               className="py-2.5 px-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 cursor-pointer"
-              title="Kirim langsung ke RawBT"
+              title="Download .bin lalu buka dengan RawBT"
             >
               RawBT
             </button>
